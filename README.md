@@ -1,6 +1,6 @@
 # Obsidian Lime
 
-<img src="https://github.com/user-attachments/assets/79f303cb-f0e0-4a41-ae7f-822855b62055" alt="Obsidian Lime logo" style="width:20%; height:auto;">
+<img src="https://github.com/user-attachments/assets/35d6f310-9825-4262-87d8-b86c032dbb95" alt="Obsidian Lime logo" style="width:20%; height:auto;">
 
 Obsidian Lime is a tiny Obsidian plugin adding a functionality of toggling the visibility of "Unlinked mentions" sections within standard Obsidian **Backlinks** and **Outgoing Links** panels.
 

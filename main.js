@@ -41,10 +41,14 @@ var ObsidunlimePlugin = class extends import_obsidian.Plugin {
   }
   async onload() {
     await this.loadSettings();
-    console.log("Loading Obsidunlime plugin");
+    this.log("Loading Obsidunlime plugin");
     this.addSettingTab(new ObsidunlimeSettingTab(this.app, this));
-    this.styleEl = document.createElement("style");
-    document.head.appendChild(this.styleEl);
+    try {
+      this.styleEl = document.createElement("style");
+      document.head.appendChild(this.styleEl);
+    } catch (error) {
+      console.error("[Obsidunlime] Error creating style element:", error);
+    }
     this.updateUnlinkedMentionsVisibility();
     this.registerEvent(
       this.app.workspace.on("layout-change", () => {
@@ -53,38 +57,52 @@ var ObsidunlimePlugin = class extends import_obsidian.Plugin {
     );
     let debounceTimer;
     this.observer = new MutationObserver((mutations) => {
-      const relevantMutation = mutations.some((mutation) => {
-        const target = mutation.target;
-        return target.closest('.workspace-leaf-content[data-type="backlink"]') || target.closest('.workspace-leaf-content[data-type="outgoing-link"]') || mutation.addedNodes.length > 0;
-      });
-      if (relevantMutation && (this.settings.hideUnlinkedMentions || this.settings.hideUnlinkedMentionsOutgoing)) {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          const panelTypes = [];
-          if (this.settings.hideUnlinkedMentions) {
-            panelTypes.push("backlink");
-          }
-          if (this.settings.hideUnlinkedMentionsOutgoing) {
-            panelTypes.push("outgoing-link");
-          }
-          this.hideUnlinkedMentionsByText(panelTypes);
-        }, 100);
+      try {
+        const relevantMutation = mutations.some((mutation) => {
+          const target = mutation.target;
+          return target.closest('.workspace-leaf-content[data-type="backlink"]') || target.closest('.workspace-leaf-content[data-type="outgoing-link"]') || mutation.addedNodes.length > 0;
+        });
+        if (relevantMutation && (this.settings.hideUnlinkedMentions || this.settings.hideUnlinkedMentionsOutgoing)) {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            try {
+              const panelTypes = [];
+              if (this.settings.hideUnlinkedMentions) {
+                panelTypes.push("backlink");
+              }
+              if (this.settings.hideUnlinkedMentionsOutgoing) {
+                panelTypes.push("outgoing-link");
+              }
+              this.hideUnlinkedMentionsByText(panelTypes);
+            } catch (error) {
+              console.error("[Obsidunlime] Error processing panel updates:", error);
+            }
+          }, 100);
+        }
+      } catch (error) {
+        console.error("[Obsidunlime] Error in MutationObserver:", error);
       }
     });
     this.app.workspace.onLayoutReady(() => {
-      const workspaceEl = document.querySelector(".workspace");
-      if (workspaceEl) {
-        this.observer.observe(workspaceEl, {
-          childList: true,
-          subtree: true,
-          attributes: true,
-          attributeFilter: ["class", "style"]
-        });
+      try {
+        const workspaceEl = document.querySelector(".workspace");
+        if (workspaceEl) {
+          this.observer.observe(workspaceEl, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["class", "style"]
+          });
+        } else {
+          console.error("[Obsidunlime] Workspace element not found");
+        }
+      } catch (error) {
+        console.error("[Obsidunlime] Error setting up observer:", error);
       }
     });
   }
   onunload() {
-    console.log("Unloading Obsidunlime plugin");
+    this.log("Unloading Obsidunlime plugin");
     if (this.styleEl) {
       this.styleEl.remove();
     }
@@ -93,15 +111,26 @@ var ObsidunlimePlugin = class extends import_obsidian.Plugin {
     }
   }
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    try {
+      this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    } catch (error) {
+      console.error("[Obsidunlime] Failed to load settings:", error);
+      this.settings = DEFAULT_SETTINGS;
+    }
   }
   async saveSettings() {
-    await this.saveData(this.settings);
-    this.updateUnlinkedMentionsVisibility();
+    try {
+      await this.saveData(this.settings);
+      this.updateUnlinkedMentionsVisibility();
+    } catch (error) {
+      console.error("[Obsidunlime] Failed to save settings:", error);
+    }
   }
   updateUnlinkedMentionsVisibility() {
     this.log("updateUnlinkedMentionsVisibility called, hideUnlinkedMentions:", this.settings.hideUnlinkedMentions, "hideUnlinkedMentionsOutgoing:", this.settings.hideUnlinkedMentionsOutgoing);
-    this.styleEl.textContent = "";
+    if (this.styleEl) {
+      this.styleEl.textContent = "";
+    }
     const panelTypes = [];
     if (this.settings.hideUnlinkedMentions) {
       panelTypes.push("backlink");
@@ -111,117 +140,140 @@ var ObsidunlimePlugin = class extends import_obsidian.Plugin {
     }
     if (panelTypes.length > 0) {
       setTimeout(() => {
-        this.hideUnlinkedMentionsByText(panelTypes);
+        try {
+          this.hideUnlinkedMentionsByText(panelTypes);
+        } catch (error) {
+          console.error("[Obsidunlime] Error hiding unlinked mentions:", error);
+        }
       }, 200);
     } else {
-      this.showUnlinkedMentions();
+      try {
+        this.showUnlinkedMentions();
+      } catch (error) {
+        console.error("[Obsidunlime] Error showing unlinked mentions:", error);
+      }
     }
   }
   hideUnlinkedMentionsByText(panelTypes) {
-    this.log("hideUnlinkedMentionsByText called for panel types:", panelTypes);
-    panelTypes.forEach((panelType) => {
-      const panelContainers = document.querySelectorAll(`.workspace-leaf-content[data-type="${panelType}"]`);
-      this.log(`Found ${panelContainers.length} panel containers for type: ${panelType}`);
-      panelContainers.forEach((container, index) => {
-        this.log(`Processing container ${index + 1} for ${panelType}:`, container);
-        if (panelType === "outgoing-link") {
-          this.log(`Processing outgoing links panel with improved logic`);
-        }
-        const treeItemSelfs = container.querySelectorAll(".tree-item-self");
-        this.log(`Found ${treeItemSelfs.length} tree-item-self elements`);
-        treeItemSelfs.forEach((treeItemSelf, selfIndex) => {
-          const textContent = treeItemSelf.textContent || "";
-          this.log(`Tree-item-self ${selfIndex + 1} text: "${textContent.trim()}"`);
-          if (textContent.trim() === "Unlinked mentions") {
-            this.log(`Found exact unlinked mentions header in ${panelType}:`, treeItemSelf);
-            const parentTreeItem = treeItemSelf.closest(".tree-item");
-            if (parentTreeItem && !parentTreeItem.dataset.obsidunlimeHidden) {
-              this.log(`Hiding parent tree-item:`, parentTreeItem);
-              parentTreeItem.dataset.obsidunlimeHidden = "true";
-              parentTreeItem.style.display = "none";
-              let nextSibling = parentTreeItem.nextElementSibling;
-              while (nextSibling && nextSibling.classList.contains("tree-item-children")) {
-                const htmlSibling = nextSibling;
-                this.log(`Hiding adjacent tree-item-children:`, htmlSibling);
-                htmlSibling.dataset.obsidunlimeHidden = "true";
-                htmlSibling.style.display = "none";
-                nextSibling = nextSibling.nextElementSibling;
-              }
+    try {
+      this.log("hideUnlinkedMentionsByText called for panel types:", panelTypes);
+      panelTypes.forEach((panelType) => {
+        try {
+          const panelContainers = document.querySelectorAll(`.workspace-leaf-content[data-type="${panelType}"]`);
+          this.log(`Found ${panelContainers.length} panel containers for type: ${panelType}`);
+          panelContainers.forEach((container, index) => {
+            this.log(`Processing container ${index + 1} for ${panelType}:`, container);
+            if (panelType === "outgoing-link") {
+              this.log(`Processing outgoing links panel with improved logic`);
             }
-          }
-        });
-        const treeItemInners = container.querySelectorAll(".tree-item-inner");
-        this.log(`Found ${treeItemInners.length} tree-item-inner elements`);
-        treeItemInners.forEach((inner, innerIndex) => {
-          const text = inner.textContent || "";
-          this.log(`Tree-item-inner ${innerIndex + 1} text: "${text.trim()}"`);
-          if (text.trim() === "Unlinked mentions") {
-            this.log(`Found unlinked mentions in tree-item-inner:`, inner);
-            let containerToHide = null;
-            const parentTreeItem = inner.closest(".tree-item");
-            const parentTreeItemSelf = inner.closest(".tree-item-self");
-            const parentCollapsible = inner.closest(".is-clickable");
-            const parentWithCollapse = inner.closest('[aria-label*="collapse"]');
-            const searchResultContainer = inner.closest(".search-result-container");
-            const viewContent = inner.closest(".view-content");
-            const navFolder = inner.closest(".nav-folder");
-            this.log(`Parent tree-item found:`, parentTreeItem);
-            this.log(`Parent tree-item-self found:`, parentTreeItemSelf);
-            this.log(`Parent collapsible found:`, parentCollapsible);
-            this.log(`Parent with collapse found:`, parentWithCollapse);
-            this.log(`Search result container found:`, searchResultContainer);
-            this.log(`View content found:`, viewContent);
-            this.log(`Nav folder found:`, navFolder);
-            containerToHide = searchResultContainer || navFolder || parentTreeItem || parentTreeItemSelf || parentCollapsible || parentWithCollapse;
-            if (containerToHide && !containerToHide.dataset.obsidunlimeHidden) {
-              this.log(`Hiding container:`, containerToHide);
-              containerToHide.dataset.obsidunlimeHidden = "true";
-              containerToHide.style.display = "none";
-              this.hideUnlinkedMentionsContentAfterHeader(container, containerToHide);
-            } else if (!containerToHide) {
-              this.log(`No suitable parent container found, trying direct parent approach`);
-              let parent = inner.parentElement;
-              while (parent && parent !== container && !parent.dataset.obsidunlimeHidden) {
-                this.log(`Checking parent:`, parent, `Classes:`, parent.className);
-                if (parent.classList.contains("tree-item-self") || parent.classList.contains("is-clickable") || parent.hasAttribute("aria-label")) {
-                  this.log(`Hiding direct parent:`, parent);
-                  parent.dataset.obsidunlimeHidden = "true";
-                  parent.style.display = "none";
-                  break;
+            const treeItemSelfs = container.querySelectorAll(".tree-item-self");
+            this.log(`Found ${treeItemSelfs.length} tree-item-self elements`);
+            treeItemSelfs.forEach((treeItemSelf, selfIndex) => {
+              const textContent = treeItemSelf.textContent || "";
+              this.log(`Tree-item-self ${selfIndex + 1} text: "${textContent.trim()}"`);
+              if (textContent.trim() === "Unlinked mentions") {
+                this.log(`Found exact unlinked mentions header in ${panelType}:`, treeItemSelf);
+                const parentTreeItem = treeItemSelf.closest(".tree-item");
+                if (parentTreeItem && !parentTreeItem.dataset.obsidunlimeHidden) {
+                  this.log(`Hiding parent tree-item:`, parentTreeItem);
+                  parentTreeItem.dataset.obsidunlimeHidden = "true";
+                  parentTreeItem.style.display = "none";
+                  let nextSibling = parentTreeItem.nextElementSibling;
+                  while (nextSibling && nextSibling.classList.contains("tree-item-children")) {
+                    const htmlSibling = nextSibling;
+                    if (htmlSibling) {
+                      this.log(`Hiding adjacent tree-item-children:`, htmlSibling);
+                      htmlSibling.dataset.obsidunlimeHidden = "true";
+                      htmlSibling.style.display = "none";
+                    }
+                    nextSibling = nextSibling.nextElementSibling;
+                  }
                 }
-                parent = parent.parentElement;
               }
-            } else {
-              this.log(`Container already marked as hidden`);
-            }
-            this.log(`Looking for unlinked mention content immediately following the header...`);
-            this.hideUnlinkedMentionsContentAfterHeader(container, containerToHide);
-          }
-        });
+            });
+            const treeItemInners = container.querySelectorAll(".tree-item-inner");
+            this.log(`Found ${treeItemInners.length} tree-item-inner elements`);
+            treeItemInners.forEach((inner, innerIndex) => {
+              const text = inner.textContent || "";
+              this.log(`Tree-item-inner ${innerIndex + 1} text: "${text.trim()}"`);
+              if (text.trim() === "Unlinked mentions") {
+                this.log(`Found unlinked mentions in tree-item-inner:`, inner);
+                let containerToHide = null;
+                const parentTreeItem = inner.closest(".tree-item");
+                const parentTreeItemSelf = inner.closest(".tree-item-self");
+                const parentCollapsible = inner.closest(".is-clickable");
+                const parentWithCollapse = inner.closest('[aria-label*="collapse"]');
+                const searchResultContainer = inner.closest(".search-result-container");
+                const viewContent = inner.closest(".view-content");
+                const navFolder = inner.closest(".nav-folder");
+                this.log(`Parent tree-item found:`, parentTreeItem);
+                this.log(`Parent tree-item-self found:`, parentTreeItemSelf);
+                this.log(`Parent collapsible found:`, parentCollapsible);
+                this.log(`Parent with collapse found:`, parentWithCollapse);
+                this.log(`Search result container found:`, searchResultContainer);
+                this.log(`View content found:`, viewContent);
+                this.log(`Nav folder found:`, navFolder);
+                containerToHide = searchResultContainer || navFolder || parentTreeItem || parentTreeItemSelf || parentCollapsible || parentWithCollapse;
+                if (containerToHide && !containerToHide.dataset.obsidunlimeHidden) {
+                  this.log(`Hiding container:`, containerToHide);
+                  containerToHide.dataset.obsidunlimeHidden = "true";
+                  containerToHide.style.display = "none";
+                  this.hideUnlinkedMentionsContentAfterHeader(container, containerToHide);
+                } else if (!containerToHide) {
+                  this.log(`No suitable parent container found, trying direct parent approach`);
+                  let parent = inner.parentElement;
+                  while (parent && parent !== container && !parent.dataset.obsidunlimeHidden) {
+                    this.log(`Checking parent:`, parent, `Classes:`, parent.className);
+                    if (parent.classList.contains("tree-item-self") || parent.classList.contains("is-clickable") || parent.hasAttribute("aria-label")) {
+                      this.log(`Hiding direct parent:`, parent);
+                      parent.dataset.obsidunlimeHidden = "true";
+                      parent.style.display = "none";
+                      break;
+                    }
+                    parent = parent.parentElement;
+                  }
+                } else {
+                  this.log(`Container already marked as hidden`);
+                }
+                this.log(`Looking for unlinked mention content immediately following the header...`);
+                this.hideUnlinkedMentionsContentAfterHeader(container, containerToHide);
+              }
+            });
+          });
+        } catch (error) {
+          console.error(`[Obsidunlime] Error processing ${panelType} panel:`, error);
+        }
       });
-    });
+    } catch (error) {
+      console.error("[Obsidunlime] Error in hideUnlinkedMentionsByText:", error);
+    }
   }
   hideUnlinkedMentionsContentAfterHeader(container, unlinkedMentionsHeader) {
-    var _a, _b;
+    var _a;
     if (!unlinkedMentionsHeader)
       return;
-    const panelType = ((_a = container.closest("[data-type]")) == null ? void 0 : _a.getAttribute("data-type")) || "unknown";
-    this.log(`Hiding unlinked content for ${panelType} panel`);
-    let currentElement = unlinkedMentionsHeader.nextElementSibling;
-    while (currentElement) {
-      const htmlElement = currentElement;
-      if (this.isNewSectionHeader(currentElement)) {
-        this.log(`Found next section header, stopping traversal:`, currentElement);
-        break;
+    try {
+      const panelTypeElement = container.closest("[data-type]");
+      const panelType = (panelTypeElement == null ? void 0 : panelTypeElement.getAttribute("data-type")) || "unknown";
+      this.log(`Hiding unlinked content for ${panelType} panel`);
+      let currentElement = unlinkedMentionsHeader.nextElementSibling;
+      while (currentElement) {
+        const htmlElement = currentElement;
+        if (this.isNewSectionHeader(currentElement)) {
+          this.log(`Found next section header, stopping traversal:`, currentElement);
+          break;
+        }
+        if (this.isDefinitelyUnlinkedContent(currentElement, panelType)) {
+          this.log(`Hiding unlinked content element in ${panelType}:`, currentElement);
+          this.log(`  - Classes: ${currentElement.className}`);
+          this.log(`  - Text: "${(_a = currentElement.textContent) == null ? void 0 : _a.trim().substring(0, 100)}..."`);
+          htmlElement.dataset.obsidunlimeHidden = "true";
+          htmlElement.style.display = "none";
+        }
+        currentElement = currentElement.nextElementSibling;
       }
-      if (this.isDefinitelyUnlinkedContent(currentElement, panelType)) {
-        this.log(`Hiding unlinked content element in ${panelType}:`, currentElement);
-        this.log(`  - Classes: ${currentElement.className}`);
-        this.log(`  - Text: "${(_b = currentElement.textContent) == null ? void 0 : _b.trim().substring(0, 100)}..."`);
-        htmlElement.dataset.obsidunlimeHidden = "true";
-        htmlElement.style.display = "none";
-      }
-      currentElement = currentElement.nextElementSibling;
+    } catch (error) {
+      console.error("[Obsidunlime] Error hiding unlinked content after header:", error);
     }
   }
   isNewSectionHeader(element) {
@@ -267,17 +319,25 @@ var ObsidunlimePlugin = class extends import_obsidian.Plugin {
     return false;
   }
   showUnlinkedMentions() {
-    this.log("showUnlinkedMentions called");
-    const hiddenElements = document.querySelectorAll('[data-obsidunlime-hidden="true"]');
-    hiddenElements.forEach((element) => {
-      const htmlElement = element;
-      this.log("Restoring element:", htmlElement);
-      delete htmlElement.dataset.obsidunlimeHidden;
-      htmlElement.style.removeProperty("display");
-      htmlElement.style.removeProperty("visibility");
-      htmlElement.style.removeProperty("height");
-      htmlElement.style.removeProperty("overflow");
-    });
+    try {
+      this.log("showUnlinkedMentions called");
+      const hiddenElements = document.querySelectorAll('[data-obsidunlime-hidden="true"]');
+      hiddenElements.forEach((element) => {
+        try {
+          const htmlElement = element;
+          this.log("Restoring element:", htmlElement);
+          delete htmlElement.dataset.obsidunlimeHidden;
+          htmlElement.style.removeProperty("display");
+          htmlElement.style.removeProperty("visibility");
+          htmlElement.style.removeProperty("height");
+          htmlElement.style.removeProperty("overflow");
+        } catch (error) {
+          console.error("[Obsidunlime] Error restoring element:", error);
+        }
+      });
+    } catch (error) {
+      console.error("[Obsidunlime] Error in showUnlinkedMentions:", error);
+    }
   }
 };
 var ObsidunlimeSettingTab = class extends import_obsidian.PluginSettingTab {

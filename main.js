@@ -177,14 +177,12 @@ var ObsidunlimePlugin = class extends import_obsidian.Plugin {
                 if (parentTreeItem && !parentTreeItem.dataset.obsidunlimeHidden) {
                   this.log(`Hiding parent tree-item:`, parentTreeItem);
                   parentTreeItem.dataset.obsidunlimeHidden = "true";
-                  parentTreeItem.style.display = "none";
                   let nextSibling = parentTreeItem.nextElementSibling;
                   while (nextSibling && nextSibling.classList.contains("tree-item-children")) {
                     const htmlSibling = nextSibling;
                     if (htmlSibling) {
                       this.log(`Hiding adjacent tree-item-children:`, htmlSibling);
                       htmlSibling.dataset.obsidunlimeHidden = "true";
-                      htmlSibling.style.display = "none";
                     }
                     nextSibling = nextSibling.nextElementSibling;
                   }
@@ -217,7 +215,6 @@ var ObsidunlimePlugin = class extends import_obsidian.Plugin {
                 if (containerToHide && !containerToHide.dataset.obsidunlimeHidden) {
                   this.log(`Hiding container:`, containerToHide);
                   containerToHide.dataset.obsidunlimeHidden = "true";
-                  containerToHide.style.display = "none";
                   this.hideUnlinkedMentionsContentAfterHeader(container, containerToHide);
                 } else if (!containerToHide) {
                   this.log(`No suitable parent container found, trying direct parent approach`);
@@ -227,7 +224,6 @@ var ObsidunlimePlugin = class extends import_obsidian.Plugin {
                     if (parent.classList.contains("tree-item-self") || parent.classList.contains("is-clickable") || parent.hasAttribute("aria-label")) {
                       this.log(`Hiding direct parent:`, parent);
                       parent.dataset.obsidunlimeHidden = "true";
-                      parent.style.display = "none";
                       break;
                     }
                     parent = parent.parentElement;
@@ -268,7 +264,6 @@ var ObsidunlimePlugin = class extends import_obsidian.Plugin {
           this.log(`  - Classes: ${currentElement.className}`);
           this.log(`  - Text: "${(_a = currentElement.textContent) == null ? void 0 : _a.trim().substring(0, 100)}..."`);
           htmlElement.dataset.obsidunlimeHidden = "true";
-          htmlElement.style.display = "none";
         }
         currentElement = currentElement.nextElementSibling;
       }
@@ -327,10 +322,6 @@ var ObsidunlimePlugin = class extends import_obsidian.Plugin {
           const htmlElement = element;
           this.log("Restoring element:", htmlElement);
           delete htmlElement.dataset.obsidunlimeHidden;
-          htmlElement.style.removeProperty("display");
-          htmlElement.style.removeProperty("visibility");
-          htmlElement.style.removeProperty("height");
-          htmlElement.style.removeProperty("overflow");
         } catch (error) {
           console.error("[Obsidunlime] Error restoring element:", error);
         }

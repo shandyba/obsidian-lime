@@ -1,0 +1,6 @@
+/* Obsidunlime Plugin Styles */
+
+/* Hide elements marked by the plugin as unlinked mentions content */
+[data-obsidunlime-hidden="true"] {
+    display: none !important;
+}

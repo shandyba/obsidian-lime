@@ -205,7 +205,6 @@ export default class ObsidunlimePlugin extends Plugin {
 						if (parentTreeItem && !parentTreeItem.dataset.obsidunlimeHidden) {
 							this.log(`Hiding parent tree-item:`, parentTreeItem);
 							parentTreeItem.dataset.obsidunlimeHidden = 'true';
-							parentTreeItem.style.display = 'none';
 							
 							// Also hide any adjacent tree-item-children that belong to this section
 							let nextSibling = parentTreeItem.nextElementSibling;
@@ -214,7 +213,6 @@ export default class ObsidunlimePlugin extends Plugin {
 								if (htmlSibling) {
 									this.log(`Hiding adjacent tree-item-children:`, htmlSibling);
 									htmlSibling.dataset.obsidunlimeHidden = 'true';
-									htmlSibling.style.display = 'none';
 								}
 								nextSibling = nextSibling.nextElementSibling;
 							}
@@ -261,7 +259,6 @@ export default class ObsidunlimePlugin extends Plugin {
 						if (containerToHide && !containerToHide.dataset.obsidunlimeHidden) {
 							this.log(`Hiding container:`, containerToHide);
 							containerToHide.dataset.obsidunlimeHidden = 'true';
-							containerToHide.style.display = 'none';
 							
 							// Use the improved approach to hide content that follows this header
 							this.hideUnlinkedMentionsContentAfterHeader(container, containerToHide);
@@ -276,7 +273,6 @@ export default class ObsidunlimePlugin extends Plugin {
 								    parent.hasAttribute('aria-label')) {
 									this.log(`Hiding direct parent:`, parent);
 									parent.dataset.obsidunlimeHidden = 'true';
-									parent.style.display = 'none';
 									break;
 								}
 								parent = parent.parentElement as HTMLElement | null;
@@ -330,7 +326,6 @@ export default class ObsidunlimePlugin extends Plugin {
 					this.log(`  - Text: "${currentElement.textContent?.trim().substring(0, 100)}..."`);
 					
 					htmlElement.dataset.obsidunlimeHidden = 'true';
-					htmlElement.style.display = 'none';
 				}
 				
 				currentElement = currentElement.nextElementSibling;
@@ -417,11 +412,7 @@ export default class ObsidunlimePlugin extends Plugin {
 					// Remove our marker
 					delete htmlElement.dataset.obsidunlimeHidden;
 					
-					// Remove only the styles we set
-					htmlElement.style.removeProperty('display');
-					htmlElement.style.removeProperty('visibility');
-					htmlElement.style.removeProperty('height');
-					htmlElement.style.removeProperty('overflow');
+					// CSS handles styling via data attribute, so we only need to remove our marker
 				} catch (error) {
 					console.error('[Obsidunlime] Error restoring element:', error);
 				}

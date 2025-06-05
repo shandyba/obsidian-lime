@@ -1,6 +1,6 @@
 {
   "name": "obsidian-lime",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "Obsidian Lime plugin for Obsidian",
   "main": "main.js",
   "scripts": {
